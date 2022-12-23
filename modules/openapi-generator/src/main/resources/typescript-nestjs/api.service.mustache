@@ -14,6 +14,7 @@ import { Observable } from 'rxjs';
 import { {{classname}} } from '../{{filename}}';
 {{/imports}}
 import { Configuration } from '../configuration';
+import { COLLECTION_FORMATS } from '../variables';
 {{#withInterfaces}}
 import { {{classname}}Interface } from './{{classFilename}}Interface';
 {{/withInterfaces}}
@@ -39,7 +40,6 @@ export class {{classname}} {
 
     constructor(protected httpClient: HttpService, @Optional() configuration: Configuration) {
         this.configuration = configuration || this.configuration;
-        this.basePath = configuration?.basePath || this.basePath;
     }
 
     /**
@@ -59,8 +59,8 @@ export class {{classname}} {
      {{/allParams}}* @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public {{nickname}}({{#allParams}}{{^isConstEnumParam}}{{paramName}}{{^required}}?{{/required}}: {{{dataType}}}, {{/isConstEnumParam}}{{/allParams}}): Observable<AxiosResponse<{{#returnType}}{{{returnType}}}{{#isResponseTypeFile}}|undefined{{/isResponseTypeFile}}{{/returnType}}{{^returnType}}any{{/returnType}}>>;
-    public {{nickname}}({{#allParams}}{{^isConstEnumParam}}{{paramName}}{{^required}}?{{/required}}: {{{dataType}}}, {{/isConstEnumParam}}{{/allParams}}): Observable<any> {
+    public {{nickname}}(instance: {sessionId: string; baseUrl: string}, {{#allParams}}{{^isConstEnumParam}}{{paramName}}{{^required}}?{{/required}}: {{{dataType}}}, {{/isConstEnumParam}}{{/allParams}}): Observable<AxiosResponse<{{#returnType}}{{{returnType}}}{{#isResponseTypeFile}}|undefined{{/isResponseTypeFile}}{{/returnType}}{{^returnType}}any{{/returnType}}>>;
+    public {{nickname}}(instance: {sessionId: string; baseUrl: string}, {{#allParams}}{{^isConstEnumParam}}{{paramName}}{{^required}}?{{/required}}: {{{dataType}}}, {{/isConstEnumParam}}{{/allParams}}): Observable<any> {
 {{#allParams}}
 
 {{#required}}
@@ -86,7 +86,7 @@ export class {{classname}} {
             })
         {{/isCollectionFormatMulti}}
         {{^isCollectionFormatMulti}}
-            queryParameters['{{baseName}}'] = {{paramName}}.join(COLLECTION_FORMATS['{{collectionFormat}}']);
+            queryParameters.append('{{baseName}}', {{paramName}}.join(COLLECTION_FORMATS['{{collectionFormat}}']));
         {{/isCollectionFormatMulti}}
         }
         {{/isArray}}
@@ -121,20 +121,12 @@ export class {{classname}} {
         // authentication ({{name}}) required
 {{#isApiKey}}
 {{#isKeyInHeader}}
-        if (this.configuration.apiKeys["{{keyParamName}}"]) {
-            headers['{{keyParamName}}'] = this.configuration.apiKeys["{{keyParamName}}"];
+        if (instance.sessionId) {
+            headers['{{keyParamName}}'] = 'SID ' + instance.sessionId;
         }
 
 {{/isKeyInHeader}}
-{{#isKeyInQuery}}
-        {{^hasQueryParams}}
-        let queryParameters = new URLSearchParams();
-        {{/hasQueryParams}}
-        if (this.configuration.apiKeys["{{keyParamName}}"]) {
-            queryParameters.append('{{keyParamName}}', this.configuration.apiKeys["{{keyParamName}}"]);
-        }
 
-{{/isKeyInQuery}}
 {{/isApiKey}}
 {{#isBasic}}
         if (this.configuration.username || this.configuration.password) {
@@ -217,7 +209,7 @@ export class {{classname}} {
 {{/formParams}}
 
 {{/hasFormParams}}
-        return this.httpClient.{{httpMethod}}{{^isResponseFile}}<{{#returnType}}{{{returnType}}}{{#isResponseTypeFile}}|undefined{{/isResponseTypeFile}}{{/returnType}}{{^returnType}}any{{/returnType}}>{{/isResponseFile}}(`${this.basePath}{{{path}}}`,{{#isBodyAllowed}}
+        return this.httpClient.{{httpMethod}}{{^isResponseFile}}<{{#returnType}}{{{returnType}}}{{#isResponseTypeFile}}|undefined{{/isResponseTypeFile}}{{/returnType}}{{^returnType}}any{{/returnType}}>{{/isResponseFile}}(`${instance.baseUrl}{{{path}}}`,{{#isBodyAllowed}}
             {{#bodyParam}}{{paramName}}{{/bodyParam}}{{^bodyParam}}{{#hasFormParams}}convertFormParamsToString ? formParams.toString() : formParams{{/hasFormParams}}{{^hasFormParams}}null{{/hasFormParams}}{{/bodyParam}},{{/isBodyAllowed}}
             {
 {{#hasQueryParams}}
